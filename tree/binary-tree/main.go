@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type BinaryTree struct {
 	// 当前节点的值
@@ -165,6 +167,168 @@ func collectSumsBottomUp(tree *BinaryTree) []int {
 	return sums
 }
 
+// calculateDivisorPath 统计所有路径和中结果是指定数公约数的路径(递推的思想实现)
+// 节点队列、路径队列和路径和队列，一一对应
+func calculateDivisorPath(tree *BinaryTree, divisor int) [][]int {
+	// 边界条件
+	if tree == nil || divisor < 0 {
+		return nil
+	}
+
+	var res [][]int
+	nodeQ := []*BinaryTree{tree}
+	paths := [][]int{{}}
+	sumsQ := []int{0}
+	for len(nodeQ) > 0 {
+		curNode := nodeQ[0]
+		curSum := curNode.Val + sumsQ[0]
+		path := paths[0]
+		nodeQ = nodeQ[1:]
+		sumsQ = sumsQ[1:]
+		paths = paths[1:]
+
+		path = append(path, curNode.Val)
+		if curNode.Left == nil && curNode.Right == nil {
+			// 没有左右子树，是叶子节点，判断是否是约数
+			if divisor%curSum == 0 {
+				// 是公约数
+				res = append(res, path)
+				continue
+			}
+		}
+
+		if curNode.Left != nil {
+			nodeQ = append(nodeQ, curNode.Left)
+			sumsQ = append(sumsQ, curSum)
+			paths = append(paths, path)
+		}
+
+		if curNode.Right != nil {
+			nodeQ = append(nodeQ, curNode.Right)
+			sumsQ = append(sumsQ, curSum)
+			paths = append(paths, path)
+		}
+	}
+
+	return res
+}
+
+// calculateDivisorPathRecursion 统计所有路径和中结果是指定数公约数的路径(递归思想的实现)
+func calculateDivisorPathRecursion(tree *BinaryTree, divisor int) [][]int {
+	if tree == nil || divisor < 0 {
+		return nil
+	}
+
+	var res [][]int
+	var dfs func(node *BinaryTree, divisor, sum int, path []int) [][]int
+	dfs = func(node *BinaryTree, divisor, sum int, path []int) [][]int {
+		if node == nil {
+			return nil
+		}
+
+		curSum := node.Val + sum
+		path = append(path, node.Val)
+		// 终止条件
+		if node.Left == nil && node.Right == nil {
+			// 叶子节点
+			if divisor%curSum == 0 {
+				// 是公约数
+				res = append(res, path)
+			}
+
+			return res
+		}
+
+		if node.Left != nil {
+			dfs(node.Left, divisor, curSum, path)
+		}
+
+		if node.Right != nil {
+			dfs(node.Right, divisor, curSum, path)
+		}
+
+		return res
+	}
+
+	dfs(tree, divisor, 0, []int{})
+	return res
+}
+
+// calculateLeafDivisorPath 计算所有的路径，这里是路径中叶子节点是能够被公约数整除的
+// 所有路径(层级遍历递推)，自顶向下
+func calculateLeafDivisorPath(tree *BinaryTree, divisor int) [][]int {
+	if tree == nil || divisor < 0 {
+		return nil
+	}
+
+	var res [][]int
+	nodeQ := []*BinaryTree{tree}
+	paths := [][]int{{}}
+	for len(nodeQ) > 0 {
+		curNode := nodeQ[0]
+		path := paths[0]
+		nodeQ = nodeQ[1:]
+		paths = paths[1:]
+		path = append(path, curNode.Val)
+		if curNode.Left == nil && curNode.Right == nil {
+			// 叶子节点
+			if divisor%curNode.Val == 0 {
+				// 是叶子节点的公约数
+				res = append(res, path)
+				continue
+			}
+		}
+
+		if curNode.Left != nil {
+			nodeQ = append(nodeQ, curNode.Left)
+			paths = append(paths, path)
+		}
+
+		if curNode.Right != nil {
+			nodeQ = append(nodeQ, curNode.Right)
+			paths = append(paths, path)
+		}
+	}
+
+	return res
+}
+
+// calculateLeafDivisorPathRecursion 计算所有的路径，这里是路径中叶子节点是
+// 能够被公约数整除的所有路径(闭包+递归)，自顶向下
+func calculateLeafDivisorPathRecursion(tree *BinaryTree, divisor int) [][]int {
+	if tree == nil || divisor < 0 {
+		return nil
+	}
+
+	var res [][]int
+	var dfs func(node *BinaryTree, divisor int, path []int)
+	dfs = func(node *BinaryTree, divisor int, path []int) {
+		if node == nil {
+			return
+		}
+
+		path = append(path, node.Val)
+		if node.Left == nil && node.Right == nil {
+			// 叶子节点
+			if divisor%node.Val == 0 {
+				res = append(res, path)
+			}
+			return
+		}
+
+		if node.Left != nil {
+			dfs(node.Left, divisor, path)
+		}
+
+		if node.Right != nil {
+			dfs(node.Right, divisor, path)
+		}
+	}
+
+	dfs(tree, divisor, []int{})
+	return res
+}
+
 func main() {
 	cur := []int{1, 2, 3, 4, 5, 6, 7}
 	bst := buildBST(cur, 0, len(cur)-1)
@@ -179,4 +343,12 @@ func main() {
 	fmt.Println("路径和(sumsRecursion): ", sums2)
 	sums3 := collectSumsBottomUp(bst)
 	fmt.Println("路径和(collectSumsBottomUp): ", sums3)
+	paths := calculateDivisorPath(bst, 63)
+	fmt.Println("公约数的路径：", paths)
+	paths1 := calculateDivisorPathRecursion(bst, 63)
+	fmt.Println("公约数的路径：", paths1)
+	paths2 := calculateLeafDivisorPath(bst, 21)
+	fmt.Println("公约数的路径：", paths2)
+	paths3 := calculateLeafDivisorPathRecursion(bst, 21)
+	fmt.Println("公约数的路径：", paths3)
 }
