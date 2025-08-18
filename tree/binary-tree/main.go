@@ -51,23 +51,23 @@ func levelTraversal(tree *BinaryTree) []int {
 	return res
 }
 
-// 计算路径和(递推思想实现)
-func calculateSums(root *BinaryTree) []int {
-	if root == nil {
+// calculateSums 计算所有的路径和(层级遍历，递推的思想实现)
+func calculateSums(tree *BinaryTree) []int {
+	if tree == nil {
 		return nil
 	}
 
-	var results []int
-	nodeQ := []*BinaryTree{root}
+	var res []int
+	nodeQ := []*BinaryTree{tree}
 	sumsQ := []int{0}
 	for len(nodeQ) > 0 {
 		curNode := nodeQ[0]
 		nodeQ = nodeQ[1:]
-		curSum := sumsQ[0] + curNode.Val
+		curSum := curNode.Val + sumsQ[0]
 		sumsQ = sumsQ[1:]
 		if curNode.Left == nil && curNode.Right == nil {
-			// 叶子节点
-			results = append(results, curSum)
+			// 没有子节点，当前节点为叶子节点
+			res = append(res, curSum)
 			continue
 		}
 
@@ -82,25 +82,26 @@ func calculateSums(root *BinaryTree) []int {
 		}
 	}
 
-	return results
+	return res
 }
 
-// 计算路径和(递归思想实现)
-func calculateSumsRecursion(root *BinaryTree) []int {
-	if root == nil {
+// calculateSumsRecursion 计算所有的路径和(深度优先，递归代码实现递推思想)
+func calculateSumsRecursion(tree *BinaryTree) []int {
+	if tree == nil {
 		return nil
 	}
 
-	var sums []int
+	var res []int
 	var dfs func(node *BinaryTree, sum int)
 	dfs = func(node *BinaryTree, sum int) {
 		if node == nil {
 			return
 		}
 
-		curSum := sum + node.Val
+		curSum := node.Val + sum
 		if node.Left == nil && node.Right == nil {
-			sums = append(sums, curSum)
+			// 叶子节点
+			res = append(res, curSum)
 			return
 		}
 
@@ -113,7 +114,54 @@ func calculateSumsRecursion(root *BinaryTree) []int {
 		}
 	}
 
-	dfs(root, 0)
+	dfs(tree, 0)
+	return res
+}
+
+// sumsRecursion 计算所有路径和(递归代码实现递归思想)
+func sumsRecursion(tree *BinaryTree) []int {
+	if tree == nil {
+		return nil
+	}
+
+	sums := sumsRecursion(tree.Left)
+	rightSums := sumsRecursion(tree.Right)
+	// 汇总所有路径
+	sums = append(sums, rightSums...)
+	// 加上当前节点的值
+	for i := 0; i < len(sums); i++ {
+		sums[i] = sums[i] + tree.Val
+	}
+
+	if len(sums) == 0 {
+		// 没有子路径，那就只加上当前的节点值
+		sums = append(sums, tree.Val)
+	}
+
+	return sums
+}
+
+// collectSumsBottomUp 计算路径和，以自底向上的思想来实现，递归处理，左右子树
+// 分别累加当前节点值写入到sums中，避免合并后再累加，防止出现大的切片合并操作
+func collectSumsBottomUp(tree *BinaryTree) []int {
+	if tree == nil {
+		return nil
+	}
+
+	var sums []int
+	for _, leftSum := range collectSumsBottomUp(tree.Left) {
+		sums = append(sums, leftSum+tree.Val)
+	}
+
+	for _, rightSum := range collectSumsBottomUp(tree.Right) {
+		sums = append(sums, rightSum+tree.Val)
+	}
+
+	if len(sums) == 0 {
+		// 没有左右子树，是一个叶子节点
+		sums = append(sums, tree.Val)
+	}
+
 	return sums
 }
 
@@ -124,7 +172,11 @@ func main() {
 	res := levelTraversal(bst)
 	fmt.Println("层级遍历二叉搜索树：", res)
 	sums := calculateSums(bst)
-	fmt.Println("路径和(递推)：", sums)
+	fmt.Println("路径和(calculateSums)：", sums)
 	sums1 := calculateSumsRecursion(bst)
-	fmt.Println("路径和(递归)：", sums1)
+	fmt.Println("路径和(calculateSumsRecursion)：", sums1)
+	sums2 := sumsRecursion(bst)
+	fmt.Println("路径和(sumsRecursion): ", sums2)
+	sums3 := collectSumsBottomUp(bst)
+	fmt.Println("路径和(collectSumsBottomUp): ", sums3)
 }
