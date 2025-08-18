@@ -254,6 +254,51 @@ func calculateDivisorPathRecursion(tree *BinaryTree, divisor int) [][]int {
 	return res
 }
 
+// calculateDivisorPathBackTrack 统计所有路径和中结果是指定数公约数的路径(回溯+闭包+递归实现)
+func calculateDivisorPathBackTrack(tree *BinaryTree, divisor int) [][]int {
+	// 边界条件
+	if tree == nil || divisor < 0 {
+		return nil
+	}
+
+	var paths [][]int
+	var curPath []int
+	var backTrack func(node *BinaryTree, divisor, sum int)
+	backTrack = func(node *BinaryTree, divisor, sum int) {
+		if node == nil {
+			return
+		}
+
+		// 修改状态
+		curSum := node.Val + sum
+		curPath = append(curPath, node.Val)
+		defer func() {
+			// 恢复状态
+			curPath = curPath[:len(curPath)-1]
+		}()
+
+		if node.Left == nil && node.Right == nil {
+			// 叶子节点
+			if divisor%curSum == 0 {
+				copyPath := make([]int, len(curPath))
+				copy(copyPath, curPath)
+				paths = append(paths, copyPath)
+			}
+			return
+		}
+
+		if node.Left != nil {
+			backTrack(node.Left, divisor, curSum)
+		}
+
+		if node.Right != nil {
+			backTrack(node.Right, divisor, curSum)
+		}
+	}
+	backTrack(tree, divisor, 0)
+	return paths
+}
+
 // calculateLeafDivisorPath 计算所有的路径，这里是路径中叶子节点是能够被公约数整除的
 // 所有路径(层级遍历递推)，自顶向下
 func calculateLeafDivisorPath(tree *BinaryTree, divisor int) [][]int {
@@ -351,4 +396,6 @@ func main() {
 	fmt.Println("公约数的路径：", paths2)
 	paths3 := calculateLeafDivisorPathRecursion(bst, 21)
 	fmt.Println("公约数的路径：", paths3)
+	paths4 := calculateDivisorPathBackTrack(bst, 63)
+	fmt.Println("公约数的路径：", paths4)
 }
