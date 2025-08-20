@@ -1,6 +1,8 @@
 package heap
 
-import "container/heap"
+import (
+	"container/heap"
+)
 
 // sorted 使用选择排序实现对数组的升序和降序的排序
 func sorted(arr []int, asc bool) []int {
