@@ -42,65 +42,108 @@ import (
 	"strings"
 )
 
-// findPathTopDown 自顶向下递归查找最小叶子节点路径
+// findPathTopDown 自顶向下，先找到最小节点的下标，然后通过回溯+反转切片获取最后的结果
 func findPathTopDown(arr []int) string {
-	if arr == nil {
+	if len(arr) == 0 {
 		return ""
 	}
 
-	// 找出最小叶子节点的下标
+	// 定义最小的叶子节点值和下标
+	l := len(arr)
 	minLeafVal := math.MaxInt32
 	minLeafIndex := -1
-	length := len(arr)
-	for i := 0; i < len(arr); i++ {
-		// 跳过空节点
-		if arr[i] == -1 {
+
+	for i, val := range arr {
+		// 跳过空节点(-1)
+		if val == -1 {
 			continue
 		}
 
-		isLeaf := true
+		// 找到左右节点的下标
 		leftIndex := 2*i + 1
 		rightIndex := 2*i + 2
-		if leftIndex < length && arr[leftIndex] != -1 {
-			isLeaf = false
+		isleaf := true
+		if leftIndex < l && arr[leftIndex] != -1 {
+			isleaf = false
 		}
 
-		if rightIndex < length && arr[rightIndex] != -1 {
-			isLeaf = false
+		if rightIndex < l && arr[rightIndex] != -1 {
+			isleaf = false
 		}
 
-		// 处理叶子节点，条件：1. 是叶子节点，2. 当前叶子节点小于最小叶子节点值
-		if isLeaf && arr[i] < minLeafVal {
+		// 处理叶子节点
+		if isleaf && arr[i] < minLeafVal {
 			minLeafVal = arr[i]
 			minLeafIndex = i
 		}
 	}
 
-	// 根据最小叶子节点下标和值回溯找到对应的路径
-	var path []int
-	curIndex := minLeafIndex
-	for curIndex >= 0 {
-		path = append(path, arr[curIndex])
-		if curIndex == 0 {
+	// 根据最小的叶子节点下标推算父节点
+	var path []string
+	currIndex := minLeafIndex
+	for currIndex >= 0 {
+		path = append(path, strconv.Itoa(arr[currIndex]))
+		if currIndex == 0 {
 			break
 		}
-		parentIndex := (curIndex - 1) / 2
-		curIndex = parentIndex
+		parentIndex := (currIndex - 1) / 2
+		currIndex = parentIndex
 	}
 
-	// 先将数组路径反转
+	// 对路径进行反转
 	for i, j := 0, len(path)-1; i < j; i, j = i+1, j-1 {
 		path[i], path[j] = path[j], path[i]
 	}
-	var res string
-	for i := 0; i < len(path); i++ {
-		res += strconv.Itoa(path[i])
-		if i < len(path)-1 {
-			res += " "
+
+	return strings.Join(path, " ")
+}
+
+// findPathDFS 深度优先算法计算最小叶子节点的完整路径
+func findPathDFS(arr []int) string {
+	if len(arr) == 0 {
+		return ""
+	}
+
+	// 定义递归闭包函数
+	l := len(arr)
+	minLeafVal := math.MaxInt32
+	var minPath []string
+	var dfs func(index int, path []string)
+	dfs = func(index int, path []string) {
+		// 边界条件：下标越界/空节点
+		if index >= len(arr) || arr[index] == -1 {
+			return
+		}
+
+		// 拷贝路径
+		currentPath := make([]string, len(path))
+		copy(currentPath, path)
+		currentPath = append(currentPath, strconv.Itoa(arr[index]))
+
+		// 处理左右子树
+		leftIndex := 2*index + 1
+		rightIndex := 2*index + 2
+		isLeaf := true
+		if leftIndex < l && arr[leftIndex] != -1 {
+			isLeaf = false
+			dfs(leftIndex, currentPath)
+		}
+
+		if rightIndex < l && arr[rightIndex] != -1 {
+			isLeaf = false
+			dfs(rightIndex, currentPath)
+		}
+
+		// 处理叶子节点
+		if isLeaf && arr[index] < minLeafVal {
+			minLeafVal = arr[index]
+			minPath = currentPath
 		}
 	}
 
-	return res
+	dfs(0, []string{})
+
+	return strings.Join(minPath, " ")
 }
 
 func handleArr(strArr []string) []int {
@@ -127,5 +170,7 @@ func main() {
 		}
 		path := findPathTopDown(arr)
 		fmt.Println(path)
+		path1 := findPathDFS(arr)
+		fmt.Println(path1)
 	}
 }
