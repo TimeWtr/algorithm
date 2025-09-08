@@ -59,41 +59,32 @@ import (
 	"strings"
 )
 
-// 文件序列编号
-var Sequence int
-var queues []*Printer
+var Sequence int64
 
-// initPrinters 初始化打印机
-func initPrinters(num int) {
-	queues = make([]*Printer, num)
-	for i := range queues {
-		queues[i] = &Printer{}
-		heap.Init(queues[i])
-	}
-}
-
-type PrintJob struct {
-	// 优先级
-	Priority int
+type PrinterJob struct {
 	// 文件序列号
-	Sequence int
+	Sequence int64
+	// 文件优先级
+	Priority int
 }
 
-type Printer []*PrintJob
+type Printer []*PrinterJob
 
 func (p Printer) Len() int { return len(p) }
 func (p Printer) Less(i, j int) bool {
-	// 先比较优先级
+	// 优先选择优先级更高的
 	if p[i].Priority != p[j].Priority {
 		return p[i].Priority > p[j].Priority
 	}
 
-	// 相同的优先级比较序列号
+	// 优先级相同的情况下序列号小的优先
 	return p[i].Sequence < p[j].Sequence
 }
-func (p Printer) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
+func (p Printer) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
 func (p *Printer) Push(v any) {
-	*p = append(*p, v.(*PrintJob))
+	*p = append(*p, v.(*PrinterJob))
 }
 func (p *Printer) Pop() any {
 	old := *p
@@ -103,58 +94,60 @@ func (p *Printer) Pop() any {
 	return v
 }
 
-func handler(et string, printer int, priority ...int) {
-	p := queues[printer-1]
-	if et == "IN" {
-		// 输入
-		Sequence++
-		job := PrintJob{
-			Priority: priority[0],
-			Sequence: Sequence,
-		}
-		heap.Push(p, &job)
-	} else if et == "OUT" {
-		// 输出
-		if p.Len() == 0 {
-			fmt.Printf("NULL")
-			return
-		}
-		v := heap.Pop(p).(*PrintJob)
-		fmt.Println(v.Sequence)
+var printerQueue []*Printer
+
+func initQueue() {
+	printerQueue = make([]*Printer, 5)
+	for i := range printerQueue {
+		printerQueue[i] = &Printer{}
+		heap.Init(printerQueue[i])
 	}
 }
 
+func handler(event string) {
+	fields := strings.Fields(event)
+	number, _ := strconv.Atoi(fields[1])
+	printer := printerQueue[number-1]
+	if fields[0] == "OUT" {
+		// 打印
+		if printer.Len() == 0 {
+			fmt.Println("NULL")
+		} else {
+			job := heap.Pop(printer).(*PrinterJob)
+			fmt.Println(job.Sequence)
+		}
+
+		return
+	}
+
+	// 写入
+	priority, _ := strconv.Atoi(fields[2])
+	Sequence++
+	heap.Push(printer, &PrinterJob{
+		Sequence: Sequence,
+		Priority: priority,
+	})
+}
+
 func main() {
-	// 初始化5台打印机和堆
-	initPrinters(5)
+	initQueue()
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
-		// 接收事件数量
 		if !scanner.Scan() {
 			break
 		}
-		num, _ := strconv.Atoi(scanner.Text())
+		num, _ := strconv.Atoi(strings.TrimSpace(scanner.Text()))
 
-		// 接收事件
 		count := 0
-		var (
-			eventType string
-			printer   int
-			priority  int
-		)
 		for count < num {
 			if !scanner.Scan() {
 				break
 			}
 
-			eventArr := strings.Split(strings.TrimSpace(scanner.Text()), " ")
-			eventType = eventArr[0]
-			printer, _ = strconv.Atoi(eventArr[1])
-			if len(eventArr) == 3 {
-				priority, _ = strconv.Atoi(eventArr[2])
-			}
-			handler(eventType, printer, priority)
+			event := strings.TrimSpace(scanner.Text())
+			handler(event)
 			count++
 		}
+		Sequence = 0
 	}
 }
