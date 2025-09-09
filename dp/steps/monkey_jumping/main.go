@@ -31,30 +31,33 @@ import (
 	"strings"
 )
 
-func jumpSteps(n int) int {
-	dp := make([]int, n+1)
-	// 没有台阶只有一种可能：不跳
+func handler(steps int) int {
+	if steps < 0 {
+		return -1
+	}
+
+	dp := make([]int, steps+1)
 	dp[0] = 1
-	if n >= 1 {
+	if steps >= 1 {
 		dp[1] = 1
 	}
 
-	if n >= 2 {
+	if steps >= 2 {
 		dp[2] = 1
 	}
 
-	for i := 3; i <= n; i++ {
+	for i := 3; i <= steps; i++ {
 		dp[i] = dp[i-1] + dp[i-3]
 	}
 
-	return dp[n]
+	return dp[steps]
 }
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		n, _ := strconv.Atoi(strings.TrimSpace(scanner.Text()))
-		res := jumpSteps(n)
+		steps, _ := strconv.Atoi(strings.TrimSpace(scanner.Text()))
+		res := handler(steps)
 		fmt.Println(res)
 	}
 }
